@@ -34,8 +34,8 @@
 
     <script>
         const LOGIN_PROXY_URL = '/api/login';
-        const API_BASE_URL = 'https://discord.com/api/v10';
-        const GATEWAY_URL = 'wss://gateway.discord.gg/?v=10&encoding=json';
+        const API_BASE_URL = 'https://discord.com/api/v9';
+        const GATEWAY_URL = 'wss://gateway.discord.gg/?v=9&encoding=json';
         let userToken = null;
         let ws = null;
 
@@ -85,10 +85,9 @@
                     const data = await response.json();
 
                     if (response.ok) {
-                     if (data.token) { 
-                        loginWithToken(data.token);
-                        return;
-                      }
+                        if (data.token) {
+                            loginWithToken(data.token);
+                            return;
                         } else if (data.mfa) {
                             throw new Error('Two-factor authentication is required.');
                         }
