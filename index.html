@@ -464,7 +464,6 @@
         );
         updatePingDots();
     }
-    // DM Icon List Fix
     async function loadDms(t) {
         if (!currentAccount) return;
         document.querySelectorAll('.server-icon.active').forEach(e => e.classList.remove('active'));
@@ -549,8 +548,8 @@
             setTimeout(()=>el.classList.remove('bg-yellow-500/10'), 2000);
         }
     }
-
-    // Linkify and Reply UI Fix
+    
+    // Reply UI Fix
     function renderMsg(m, isNew, isPrepended=false) {
         if (!m.author || !currentAccount) return;
         const p = document.getElementById('message-container');
@@ -584,8 +583,8 @@
             const rAuthAvatar = rAuth.avatar ? `https://cdn.discordapp.com/avatars/${rAuth.id}/${rAuth.avatar}.png?size=32` : `https://cdn.discordapp.com/embed/avatars/${rAuth.discriminator % 5}.png`;
 
             replyHtml = `
-                <div class="relative ml-[56px] -mb-3 flex items-center cursor-pointer" onclick="scrollToMessage('${rm.id}')">
-                    <div class="absolute -left-10 bottom-0 top-[-8px] w-8 border-l-2 border-b-2 border-gray-400 dark:border-gray-600 rounded-bl-md"></div>
+                <div class="relative ml-14 flex items-center cursor-pointer" onclick="scrollToMessage('${rm.id}')">
+                    <div style="bottom: -28px;" class="absolute -left-10 top-0 w-8 border-l-2 border-t-2 border-gray-400 dark:border-gray-600 rounded-tl-md"></div>
                     <img src="${rAuthAvatar}" class="w-4 h-4 rounded-full mr-2">
                     <b class="mr-2 text-sm text-[var(--text-link)]">${rAuthName}</b>
                     <span class="truncate text-xs opacity-70">${rCont}</span>
