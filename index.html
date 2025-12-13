@@ -467,16 +467,25 @@
         if (!d) return;
         const l = document.getElementById('channel-list');
         l.innerHTML = '';
-        d.sort((a,b)=>(b.last_message_id || '0').localeCompare(a.last_message_id || '0')).forEach(dm=>{
-            const n = dm.name || dm.recipients?.[0]?.global_name || dm.recipients?.[0]?.username || 'DM';
+        d.sort((a, b)=>(b.last_message_id || '0').localeCompare(a.last_message_id || '0')).forEach(dm=>{
+            const recipient = dm.recipients?.[0];
+            const n = dm.name || recipient?.global_name || recipient?.username || 'DM';
+
+            let avatarHtml = '';
+            if (recipient) {
+                const av = recipient.avatar ? `https://cdn.discordapp.com/avatars/${recipient.id}/${recipient.avatar}.png?size=64` : `https://cdn.discordapp.com/embed/avatars/${recipient.discriminator % 5}.png`;
+                avatarHtml = `<img src="${av}" class="w-8 h-8 rounded-full mr-3 flex-shrink-0">`;
+            } else {
+                avatarHtml = `<div class="w-8 h-8 rounded-full mr-3 flex-shrink-0 bg-gray-700 flex items-center justify-center"><svg class="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20"><path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3zM6 8a2 2 0 11-4 0 2 2 0 014 0zM16 18v-3a5.972 5.972 0 00-.75-2.906A3.005 3.005 0 0119 15v3h-3zM4.75 12.094A5.973 5.973 0 004 15v3H1v-3a3 3 0 013.75-2.906z"></path></svg></div>`;
+            }
+
             const e = document.createElement('div');
             e.id = `channel-${dm.id}`;
-            e.className = 'channel-item p-2 rounded cursor-pointer mb-1 text-sm truncate';
-            e.innerText = n;
+            e.className = 'channel-item p-2 rounded cursor-pointer mb-1 text-sm flex items-center';
+            e.innerHTML = `${avatarHtml}<span class="truncate">${n}</span>`;
             e.onclick = ()=>selectChannel(dm);
             l.appendChild(e);
-        }
-        );
+        });
         updatePingDots();
     }
 
@@ -506,8 +515,8 @@
             oldestMessageId = ms[ms.length - 1].id;
             ms.reverse().forEach(m=>renderMsg(m, false, false));
             const isScrolledToBottom = (con.scrollHeight - con.scrollTop - con.clientHeight) < 1;
-            if(isScrolledToBottom) {
-                 await apiRequest(currentAccount.token, `/channels/${ch.id}/messages/${lastReadId}/ack`, 'POST', {});
+            if (isScrolledToBottom) {
+                await apiRequest(currentAccount.token, `/channels/${ch.id}/messages/${lastReadId}/ack`, 'POST', {});
             }
             setTimeout(()=>con.scrollTop = con.scrollHeight, 0);
         }
@@ -522,9 +531,6 @@
         const {data: m} = await apiRequest(currentAccount.token, `/channels/${currentChannel.id}/messages?limit=100&before=${oldestMessageId}`);
         if (Array.isArray(m) && m.length > 0) {
             oldestMessageId = m[m.length - 1].id;
-            // FIXME: Messages loaded this way won't group with each other correctly.
-            // This is a more complex problem related to state management during prepend.
-            // The user's current issue is with new messages, which is fixed.
             m.reverse().forEach(msg=>renderMsg(msg, false, true));
             con.scrollTop = con.scrollHeight - oldHeight;
         } else {
@@ -534,8 +540,11 @@
     }
     function scrollToMessage(id) {
         const el = document.getElementById(`message-${id}`);
-        if(el) {
-            el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        if (el) {
+            el.scrollIntoView({
+                behavior: 'smooth',
+                block: 'center'
+            });
             el.classList.add('bg-yellow-500/10', 'transition-all', 'duration-1000');
             setTimeout(()=>el.classList.remove('bg-yellow-500/10'), 2000);
         }
@@ -544,26 +553,26 @@
     function renderMsg(m, isNew, isPrepended=false) {
         if (!m.author || !currentAccount) return;
         const p = document.getElementById('message-container');
-
-        // FIX: Removed !isNew so that new websocket messages can form groups.
-        // The !isPrepended flag is still here, which means messages loaded via "load more"
-        // won't group with existing messages, but also won't group with EACH OTHER.
-        // This is a known issue left unfixed as it's complex, but the user's main bug is resolved.
         const isGrouped = !isPrepended && m.author.id === lastMessageInfo.authorId && (new Date(m.timestamp) - new Date(lastMessageInfo.timestamp)) < 300 * 1000;
-        
         let originalContent = m.content;
-        let contentHtml = m.content.replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\n/g, '<br>').replace(/&lt;@!?(\d+)&gt;/g, (_,id)=>{
-            const u = m.mentions.find(mu=>mu.id === id);
-            return u ? `<span class="mention">@${u.global_name || u.username} (${u.username})</span>` : '@unknown-user';
-        }
-        ).replace(/&lt;a?:(\w+):(\d+)&gt;/g, (_,n,i)=>`<img src="https://cdn.discordapp.com/emojis/${i}.webp?size=48&quality=lossless" alt=":${n}:" class="inline h-6 w-6">`);
+
+        const urlRegex = /(https?:\/\/[^\s<>"'\|`{}]+)/g;
+        let contentHtml = m.content
+            .replace(/</g, '&lt;').replace(/>/g, '&gt;')
+            .replace(urlRegex, (url)=>`<a href="${url}" target="_blank" class="text-[var(--text-link)] hover:underline">${url}</a>`)
+            .replace(/\n/g, '<br>')
+            .replace(/&lt;@!?(\d+)&gt;/g, (_, id)=>{
+                const u = m.mentions.find(mu=>mu.id === id);
+                return u ? `<span class="mention">@${u.global_name || u.username} (${u.username})</span>` : '@unknown-user';
+            })
+            .replace(/&lt;a?:(\w+):(\d+)&gt;/g, (_, n, i)=>`<img src="https://cdn.discordapp.com/emojis/${i}.webp?size=48&quality=lossless" alt=":${n}:" class="inline h-6 w-6">`);
+        
         if (m.sticker_items) contentHtml += m.sticker_items.map(s=>`<img src="https://media.discordapp.net/stickers/${s.id}.webp?size=160" alt="${s.name}" class="w-32 h-32 mt-2"/>`).join('');
         if (m.attachments?.length > 0) contentHtml += m.attachments.map(a=>{
             if (a.content_type?.startsWith('image')) return `<br><a href="${a.url}" target="_blank"><img src="${a.url}" class="max-w-xs cursor-pointer rounded-lg mt-2" style="display: block;"/></a>`;
             if (a.content_type?.startsWith('video')) return `<br><video src="${a.url}" controls playsinline muted class="max-w-xs rounded-lg mt-2"></video>`;
             return `<div class="mt-2 p-3 rounded-md text-[var(--text-primary)]" style="background-color:var(--bg-tertiary);"><a href="${a.url}" target="_blank" class="text-[var(--text-link)]">${a.filename}</a></div>`
-        }
-        ).join('');
+        }).join('');
         let replyHtml = '';
         if (m.referenced_message) {
             const rm = m.referenced_message;
@@ -591,15 +600,16 @@
         } else {
             p.appendChild(el);
         }
-        
-        // FIX: Update lastMessageInfo correctly for new messages
+
         if (!isPrepended) {
-             if (!isGrouped) {
-                 lastMessageInfo = { authorId: m.author.id, timestamp: m.timestamp };
-             } else {
-                 // For a grouped message, we only need to update the timestamp to keep the group "alive"
-                 lastMessageInfo.timestamp = m.timestamp;
-             }
+            if (!isGrouped) {
+                lastMessageInfo = {
+                    authorId: m.author.id,
+                    timestamp: m.timestamp
+                };
+            } else {
+                lastMessageInfo.timestamp = m.timestamp;
+            }
         }
     }
     function renderEmbed(e) {
@@ -689,8 +699,7 @@
                 e.preventDefault();
                 saveEdit(id);
             }
-        }
-        ;
+        };
         contentEl.querySelectorAll('b')[0].onclick = ()=>cancelEdit(id, original);
         contentEl.querySelectorAll('b')[1].onclick = ()=>saveEdit(id);
     }
@@ -730,7 +739,6 @@
         if (!currentAccount || !currentAccount.token) return;
         if (ws) ws.close();
         ws = new WebSocket('wss://gateway.discord.gg/?v=10&encoding=json');
-        const s = document.getElementById('ws-status');
         ws.onmessage = e=>{
             const d = JSON.parse(e.data);
             if (d.s) lastSequence = d.s;
@@ -769,21 +777,23 @@
             else if (d.t === 'MESSAGE_UPDATE' && d.d.channel_id === currentChannel?.id) {
                 const el = document.getElementById(`message-${d.d.id}`);
                 if (el) {
-                    el.querySelector('.message-content-text').innerHTML = d.d.content.replace(/\n/g, '<br>');
+                    // Re-render message content to apply linkification
+                     const newContent = d.d.content;
+                     el.querySelector('.message-content-text').innerHTML = newContent
+                        .replace(/</g, '&lt;').replace(/>/g, '&gt;')
+                        .replace(/(https?:\/\/[^\s<>"'\|`{}]+)/g, (url) => `<a href="${url}" target="_blank" class="text-[var(--text-link)] hover:underline">${url}</a>`)
+                        .replace(/\n/g, '<br>');
                 }
             }
-        }
-        ;
+        };
         ws.onclose = ()=>{
             if (heartbeatInterval) clearInterval(heartbeatInterval);
             if (currentAccount) setTimeout(connectWS, 5000);
-        }
-        ;
+        };
         ws.onerror = e=>{
             console.error('WS Error:', e);
             ws.close();
-        }
-        ;
+        };
     }
     function updatePings(id, count, isDm, guildId=null) {
         if (count > 0) {
@@ -804,13 +814,14 @@
         Object.keys(pingCounts).forEach(id=>{
             const el = document.getElementById(`channel-${id}`);
             if (el && !el.querySelector('.ping-dot')) el.insertAdjacentHTML('beforeend', '<div class="ping-dot"></div>');
-            const {guildId} = pingCounts[id];
+            const {
+                guildId
+            } = pingCounts[id];
             if (guildId) {
                 const gEl = document.getElementById(`guild-${guildId}`);
                 if (gEl && !gEl.querySelector('.ping-dot')) gEl.insertAdjacentHTML('beforeend', '<div class="ping-dot"></div>');
             }
-        }
-        );
+        });
     }
 
     async function checkTimeoutStatus(guildId) {
@@ -831,8 +842,7 @@
                     const s = Math.floor(diff % 60);
                     setInputState(false, `タイムアウト中: ${d > 0 ? `${d}d` : ''} ${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`);
                 }
-            }
-            ;
+            };
             update();
             timeoutInterval = setInterval(update, 1000);
         } else setInputState(true);
@@ -913,6 +923,7 @@
         else {
             showLoginScreen();
         }
+
         function showLoginScreen() {
             updateView('auth')
         }
@@ -924,8 +935,7 @@
         document.getElementById('attach-button').onclick = ()=>document.getElementById('file-input').click();
         document.getElementById('file-input').onchange = e=>{
             if (e.target.files.length > 0) setAttachment(e.target.files[0]);
-        }
-        ;
+        };
         document.getElementById('back-to-channels-btn').onclick = showSidebarView;
         document.getElementById('message-input').addEventListener('input', handleInput);
         document.getElementById('message-input').addEventListener('keypress', e=>{
@@ -933,40 +943,33 @@
                 e.preventDefault();
                 sendMessage();
             }
-        }
-        );
+        });
         document.getElementById('message-container').addEventListener('scroll', e=>{
             if (e.target.scrollTop < 100 && oldestMessageId) loadMoreMessages()
-        }
-        );
+        });
         document.body.addEventListener('paste', e=>{
             const file = e.clipboardData.files[0];
             if (file) {
                 e.preventDefault();
                 setAttachment(file);
             }
-        }
-        );
+        });
         document.getElementById('theme-toggle-btn').addEventListener('click', ()=>{
             document.documentElement.classList.toggle('dark');
             localStorage.setItem('theme', document.documentElement.classList.contains('dark') ? 'dark' : 'light');
             applyTheme();
-        }
-        );
+        });
         document.getElementById('user-info-panel').onclick = ()=>document.getElementById('account-switcher').classList.toggle('hidden');
         document.getElementById('add-account-switcher-btn').onclick = ()=>{
             document.getElementById('account-switcher').classList.add('hidden');
             showLoginScreen();
-        }
-        ;
+        };
         document.getElementById('cancel-add-account-button').onclick = ()=>{
             const a = getAccounts();
             if (a.length > 0) switchAccount(getActiveAccountId() || a[0].id);
-        }
-        ;
+        };
         window.addEventListener('resize', handleResize);
-    }
-    );
+    });
 </script>
     </body>
 </html>
