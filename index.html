@@ -23,6 +23,7 @@
         .loader { border: 4px solid var(--bg-tertiary); border-top: 4px solid var(--button-bg); border-radius: 50%; width: 24px; height: 24px; animation: spin 1s linear infinite; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         ::-webkit-scrollbar { width: 8px; } ::-webkit-scrollbar-track { background: var(--bg-secondary); } ::-webkit-scrollbar-thumb { background: var(--bg-tertiary); border-radius: 4px; } ::-webkit-scrollbar-thumb:hover { background: #555; }
+        
         .message-toolbar { visibility: hidden; opacity: 0; transition: opacity 0.1s ease-in-out; }
         .message-group:hover .message-toolbar { visibility: visible; opacity: 1; }
         .reaction-picker { display: none; }
@@ -30,6 +31,7 @@
     </style>
 </head>
 <body class="font-sans h-screen flex flex-col">
+    <!-- Auth Section -->
     <div id="auth-section" class="w-full max-w-md mx-auto my-auto p-8 rounded-lg shadow-xl" style="background-color: var(--bg-secondary);">
         <h1 class="text-2xl font-bold text-center mb-2">Welcome Back!</h1>
         <div id="login-error" class="text-red-500 text-xs mb-3 text-center"></div>
@@ -42,7 +44,9 @@
         </form>
     </div>
 
+    <!-- Main App -->
     <div id="main-app" class="hidden flex-1 flex flex-col md:flex-row min-h-0">
+        <!-- Sidebar: Servers -->
         <div class="w-full md:w-20 p-2 flex md:flex-col items-center gap-2 overflow-x-auto md:overflow-y-auto" style="background-color: var(--bg-tertiary);">
             <div id="dm-icon" title="DM" class="server-icon bg-indigo-600 flex items-center justify-center cursor-pointer text-white font-black text-xl mb-1">DM</div>
             <div id="guild-list" class="flex md:flex-col items-center gap-2 w-full"></div>
@@ -52,6 +56,7 @@
         </div>
 
         <div class="flex-1 flex min-h-0">
+            <!-- Channel List -->
             <div id="channel-panel" class="w-64 flex-col border-r hidden md:flex" style="border-color: var(--border-color);">
                 <div class="p-4 border-b font-bold truncate" id="guild-name" style="border-color: var(--border-color);"></div>
                 <div id="channel-list" class="flex-1 overflow-y-auto p-2"></div>
@@ -134,14 +139,14 @@
                 img.src = g.icon ? `https://cdn.discordapp.com/icons/${g.id}/${g.icon}.png?size=128` : 'https://cdn.discordapp.com/embed/avatars/0.png';
                 img.alt = g.name;
                 img.title = g.name;
-                img.onclick = () => loadChannels(g);
+                img.onclick = (e) => loadChannels(g, e);
                 list.appendChild(img);
             });
         }
         
-        async function loadChannels(guild) {
+        async function loadChannels(guild, event) {
             document.querySelectorAll('.server-icon.active').forEach(el => el.classList.remove('active'));
-            event.target.classList.add('active');
+            if(event) event.currentTarget.classList.add('active');
 
             document.getElementById('guild-name').innerText = guild.name;
             document.getElementById('channel-panel').classList.remove('hidden');
@@ -152,9 +157,11 @@
             list.innerHTML = '';
 
             const channelsByCategory = channels.reduce((acc, channel) => {
-                const parentId = channel.parent_id || 'null';
-                if (!acc[parentId]) acc[parentId] = [];
-                acc[parentId].push(channel);
+                if (channel.type === 0 || channel.type === 5) { // Text or Announcement channel
+                    const parentId = channel.parent_id || 'null';
+                    if (!acc[parentId]) acc[parentId] = [];
+                    acc[parentId].push(channel);
+                }
                 return acc;
             }, {});
 
@@ -165,20 +172,22 @@
                 const d = document.createElement('div');
                 d.id = `channel-${c.id}`;
                 d.className = 'channel-item p-2 rounded cursor-pointer mb-1 text-sm truncate opacity-80 hover:opacity-100';
-                d.innerText = `# ${c.name}`;
+                d.innerHTML = `<span class="mr-1 text-gray-500">#</span> ${c.name}`;
                 d.onclick = () => selectChannel(c);
                 list.appendChild(d);
             };
             
-            if (channelsByCategory['null']) channelsByCategory['null'].filter(c => c.type === 0 || c.type === 5).forEach(renderChannel);
+            if (channelsByCategory['null']) channelsByCategory['null'].forEach(renderChannel);
+
             categories.forEach(cat => {
-                const header = document.createElement('div');
-                header.className = 'px-1 pt-4 pb-1 text-xs font-bold uppercase tracking-wider'
-                header.style.color = 'var(--text-secondary)';
-                header.innerText = cat.name;
-                list.appendChild(header);
-                
-                if (channelsByCategory[cat.id]) channelsByCategory[cat.id].filter(c => c.type === 0 || c.type === 5).forEach(renderChannel);
+                if (channelsByCategory[cat.id]) {
+                    const header = document.createElement('div');
+                    header.className = 'px-1 pt-4 pb-1 text-xs font-bold uppercase tracking-wider'
+                    header.style.color = 'var(--text-secondary)';
+                    header.innerText = cat.name;
+                    list.appendChild(header);
+                    channelsByCategory[cat.id].forEach(renderChannel);
+                }
             });
         }
 
@@ -194,17 +203,19 @@
             list.innerHTML = '';
             channels.sort((a, b) => (b.last_message_id || '0').localeCompare(a.last_message_id || '0')).forEach(c => {
                 const name = c.name || (c.recipients?.[0]?.global_name || c.recipients?.[0]?.username || 'DM');
+                const avatar = c.recipients?.[0]?.avatar ? `https://cdn.discordapp.com/avatars/${c.recipients[0].id}/${c.recipients[0].avatar}.png?size=64` : `https://cdn.discordapp.com/embed/avatars/${c.recipients?.[0]?.discriminator % 5}.png`;
+                
                 const d = document.createElement('div');
                 d.id = `channel-${c.id}`;
-                d.className = 'channel-item p-2 rounded cursor-pointer mb-1 text-sm truncate';
-                d.innerText = name;
+                d.className = 'channel-item p-2 rounded cursor-pointer mb-1 text-sm truncate flex items-center gap-2';
+                d.innerHTML = `<img src="${avatar}" class="w-8 h-8 rounded-full"> <span>${name}</span>`;
                 d.onclick = () => selectChannel(c);
                 list.appendChild(d);
             });
         }
 
         async function selectChannel(ch) {
-            if (currentChannelId === ch.id) return; 
+            if (currentChannelId === ch.id) return;
             currentChannelId = ch.id;
             oldestMessageId = null;
             isLoadingMore = false;
@@ -257,27 +268,30 @@
 
             const isGrouped = !m.referenced_message && m.author.id === lastMessageInfo.authorId && (new Date(m.timestamp) - new Date(lastMessageInfo.timestamp)) < 5 * 60 * 1000;
 
-            let contentHTML = parseContent(m.content);
+            let contentHTML = m.content ? parseContent(m.content) : '';
 
             if (m.sticker_items) {
                  contentHTML += `<img src="https://media.discordapp.net/stickers/${m.sticker_items[0].id}.png?size=160" alt="sticker" class="w-32 h-32 mt-2"/>`;
             }
-
-            if (m.attachments?.length > 0 && m.attachments[0].content_type?.startsWith('image')) {
-                contentHTML += `<br><img src="${m.attachments[0].url}" class="message-content" style="max-height: 250px; cursor: pointer;" onclick="window.open('${m.attachments[0].url}', '_blank')"/>`;
+            if (m.attachments?.length > 0) {
+                 m.attachments.forEach(att => {
+                    if (att.content_type?.startsWith('image')) {
+                        contentHTML += `<br><img src="${att.url}" class="message-content" style="max-height: 250px; cursor: pointer;" onclick="window.open('${att.url}', '_blank')"/>`;
+                    } else {
+                        contentHTML += `<br><a href="${att.url}" target="_blank" class="text-blue-500 underline">${att.filename}</a>`;
+                    }
+                 });
             }
-
+            
             let referencedMessageHTML = '';
-            if (m.referenced_message) {
+            if (m.referenced_message && m.referenced_message.author) {
                 const ref = m.referenced_message;
-                if(ref && ref.author) {
-                    const refAuthor = ref.author.global_name || ref.author.username;
-                    let refContent = ref.content ? (ref.content.length > 100 ? ref.content.substring(0, 100) + '...' : ref.content) : 'Attachment';
-                    refContent = parseContent(refContent).replace(/<br>/g, ' ');
-                    const refAvatar = ref.author.avatar ? `https://cdn.discordapp.com/avatars/${ref.author.id}/${ref.author.avatar}.png?size=32` : `https://cdn.discordapp.com/embed/avatars/${ref.author.discriminator % 5}.png`;
-                    referencedMessageHTML = `<div class="flex items-center text-xs opacity-70 mb-1 ml-10 cursor-pointer" onclick="scrollToMessage('${ref.id}')">
-                        <img src="${refAvatar}" class="w-4 h-4 rounded-full mr-2"><span class="font-semibold mr-2">${refAuthor}</span><span class="truncate">${refContent}</span></div>`;
-                }
+                const refAuthor = ref.author.global_name || ref.author.username;
+                let refContent = ref.content ? (ref.content.length > 50 ? ref.content.substring(0, 50) + '...' : ref.content) : 'Attachment';
+                refContent = parseContent(refContent).replace(/<br>/g, ' ');
+                const refAvatar = ref.author.avatar ? `https://cdn.discordapp.com/avatars/${ref.author.id}/${ref.author.avatar}.png?size=32` : `https://cdn.discordapp.com/embed/avatars/${ref.author.discriminator % 5}.png`;
+                referencedMessageHTML = `<div class="flex items-center text-xs opacity-70 mb-1 ml-10 cursor-pointer" onclick="scrollToMessage('${ref.id}')">
+                    <img src="${refAvatar}" class="w-4 h-4 rounded-full mr-2"><span class="font-semibold mr-2">${refAuthor}</span><span class="truncate">${refContent}</span></div>`;
             }
             
             let reactionsHTML = '';
@@ -305,7 +319,7 @@
             const div = document.createElement('div');
             div.id = `message-${m.id}`;
 
-            if (isGrouped && !isInitialLoad) {
+            if (isGrouped) {
                 div.className = "relative px-4 message-group pl-16 py-0.5";
                 div.innerHTML = `<div class="text-sm break-words">${contentHTML}</div> ${reactionsHTML} ${toolbarHTML}`;
             } else {
@@ -327,25 +341,10 @@
                 container.insertBefore(div, container.firstChild);
             }
 
-            lastMessageInfo = { authorId: m.author.id, timestamp: m.timestamp };
-            if (shouldScroll) scrollToBottom();
-        }
-        
-        function updateMessage(messageData) {
-            const el = document.getElementById(`message-${messageData.id}`);
-            if(el) {
-                let reactionsHTML = '';
-                 if (messageData.reactions && messageData.reactions.length > 0) {
-                    reactionsHTML = '<div class="flex flex-wrap gap-1 mt-1">';
-                    messageData.reactions.forEach(r => {
-                        const emojiHTML = r.emoji.id ? `<img src="https://cdn.discordapp.com/emojis/${r.emoji.id}.png" class="w-4 h-4">` : `<span>${r.emoji.name}</span>`;
-                        reactionsHTML += `<div class="flex items-center gap-1 text-xs px-2 py-0.5 rounded-full" style="background-color: var(--bg-quaternary);">${emojiHTML} <span class="font-semibold">${r.count}</span></div>`;
-                    });
-                    reactionsHTML += '</div>';
-                }
-                const reactionsContainer = el.querySelector('.flex.flex-wrap.gap-1.mt-1');
-                if(reactionsContainer) reactionsContainer.innerHTML = reactionsHTML;
+            if (!isGrouped) {
+                lastMessageInfo = { authorId: m.author.id, timestamp: m.timestamp };
             }
+            if (shouldScroll) scrollToBottom();
         }
 
         async function loadMoreMessages() {
@@ -363,12 +362,14 @@
             
             if (Array.isArray(msgs) && msgs.length > 0) {
                 const oldScrollHeight = container.scrollHeight;
-                lastMessageInfo = { authorId: null, timestamp: null };
+                lastMessageInfo = { authorId: null, timestamp: null }; 
                 msgs.reverse().forEach(m => renderMsg(m, false, true));
-                oldestMessageId = msgs[msgs.length -1].id;
+                
+                oldestMessageId = msgs[0].id;
+                
                 container.scrollTop = container.scrollHeight - oldScrollHeight;
             } else {
-                oldestMessageId = null;
+                oldestMessageId = null; 
             }
             isLoadingMore = false;
         }
@@ -388,10 +389,7 @@
         }
         
         function startReply(message) {
-            replyingTo = {
-                messageId: message.id,
-                authorName: message.author.global_name || message.author.username,
-            };
+            replyingTo = { messageId: message.id, authorName: message.author.global_name || message.author.username };
             document.getElementById('reply-bar').classList.remove('hidden');
             document.getElementById('reply-username').innerText = `@${replyingTo.authorName}`;
             document.getElementById('message-input').focus();
@@ -413,9 +411,8 @@
             }
 
             input.value = '';
-            input.dispatchEvent(new Event('input'));
+            input.dispatchEvent(new Event('input')); 
             cancelReply();
-
             apiRequest(`/channels/${currentChannelId}/messages`, 'POST', body);
         }
 
@@ -426,7 +423,7 @@
                 const data = JSON.parse(e.data);
                 if(data.s) lastSequence = data.s;
                 
-                if(data.op === 10) {
+                if (data.op === 10) { 
                     if(heartbeatInterval) clearInterval(heartbeatInterval);
                     heartbeatInterval = setInterval(() => ws.send(JSON.stringify({op:1, d: lastSequence})), data.d.heartbeat_interval);
                     ws.send(JSON.stringify({ op: 2, d: { token: userToken, properties: { os: "windows", browser: "chrome", device: "" } } }));
@@ -434,8 +431,23 @@
                     document.getElementById('ws-status').classList.replace('bg-gray-500', 'bg-green-500');
                 } else if(data.t === 'MESSAGE_CREATE' && data.d.channel_id === currentChannelId) {
                     renderMsg(data.d, true);
-                } else if (data.t === 'MESSAGE_UPDATE' && data.d.channel_id === currentChannelId) {
-                    updateMessage(data.d);
+                } else if ((data.t === 'MESSAGE_REACTION_ADD' || data.t === 'MESSAGE_REACTION_REMOVE') && data.d.channel_id === currentChannelId) {
+                     apiRequest(`/channels/${currentChannelId}/messages/${data.d.message_id}`).then(msg => {
+                        const existing = document.getElementById(`message-${msg.id}`);
+                        if (existing) {
+                             let reactionsHTML = '';
+                            if (msg.reactions) {
+                                reactionsHTML = '<div class="flex flex-wrap gap-1 mt-1">';
+                                msg.reactions.forEach(r => {
+                                    const emojiHTML = r.emoji.id ? `<img src="https://cdn.discordapp.com/emojis/${r.emoji.id}.png" class="w-4 h-4">` : `<span>${r.emoji.name}</span>`;
+                                    reactionsHTML += `<div class="flex items-center gap-1 text-xs px-2 py-0.5 rounded-full" style="background-color: var(--bg-quaternary);">${emojiHTML} <span class="font-semibold">${r.count}</span></div>`;
+                                });
+                                reactionsHTML += '</div>';
+                            }
+                            const reactionsDiv = existing.querySelector('.flex.flex-wrap');
+                            if (reactionsDiv) reactionsDiv.outerHTML = reactionsHTML;
+                        }
+                     });
                 }
             };
             ws.onclose = () => {
@@ -449,13 +461,14 @@
         function scrollToBottom() { const c = document.getElementById('message-container'); c.scrollTop = c.scrollHeight; }
         function logout() { localStorage.removeItem('token'); location.reload(); }
         
+        // --- Event Listeners ---
         document.getElementById('login-form').onsubmit = (e) => { e.preventDefault(); loginWithToken(document.getElementById('token-input').value); };
         document.getElementById('dm-icon').onclick = loadDms;
         document.getElementById('send-button').onclick = sendMessage;
         document.getElementById('cancel-reply-btn').onclick = cancelReply;
         document.getElementById('message-input').onkeypress = (e) => { if(e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }};
         document.getElementById('message-container').addEventListener('scroll', (e) => {
-            if (e.target.scrollTop === 0) {
+            if (e.target.scrollTop < 10 && !isLoadingMore) { 
                 loadMoreMessages();
             }
         });
@@ -464,16 +477,11 @@
         });
         
         document.addEventListener('DOMContentLoaded', () => {
-             const savedToken = localStorage.getItem('token');
-            if (savedToken) {
-                loginWithToken(savedToken);
-            }
-            if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
-                 document.documentElement.classList.add('dark');
-            }
+            const savedToken = localStorage.getItem('token');
+            if (savedToken) loginWithToken(savedToken);
+            if (window.matchMedia('(prefers-color-scheme: dark)').matches) document.documentElement.classList.add('dark');
             document.getElementById('send-button').disabled = true;
         });
-
     </script>
 </body>
 </html>
