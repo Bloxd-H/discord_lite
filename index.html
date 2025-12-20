@@ -29,6 +29,8 @@
         --mention-bg: rgba(88, 101, 242, 0.1);
         --mention-fg: #5865f2;
         --system-bg: rgba(88, 166, 255, 0.1);
+        --mention-bg-highlight: rgba(250, 233, 105, 0.1);
+        --mention-border-highlight: #faa81a;
     }
 
     html.dark {
@@ -47,6 +49,7 @@
         --mention-bg: rgba(88, 101, 242, 0.15);
         --mention-fg: #7289da;
         --system-bg: rgba(88, 166, 255, 0.1);
+        --mention-bg-highlight: rgba(250, 233, 105, 0.05);
     }
 
     html.dark .input-field {
@@ -62,12 +65,11 @@
         height: 48px;
         flex-shrink: 0;
     }
-    
-    .server-icon.active img, .server-icon.active div {
-        border-radius: 0.5rem;
-        transition: border-radius 0.5s ease-in-out;
-    }
 
+    .server-icon.active img, .server-icon.active div {
+        border-radius: 1rem;
+        transition: border-radius 0.2s ease-in-out;
+    }
 
     .ping-dot {
         position: absolute;
@@ -102,7 +104,6 @@
         0% {
             transform: rotate(0deg);
         }
-
         100% {
             transform: rotate(360deg);
         }
@@ -143,6 +144,18 @@
         visibility: hidden;
         opacity: 0;
         transition: opacity 0.1s ease-in-out;
+    }
+    .message-group.mention-highlight {
+        background-color: var(--mention-bg-highlight);
+    }
+    .message-group.mention-highlight::before {
+        content: '';
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 2px;
+        height: 100%;
+        background-color: var(--mention-border-highlight);
     }
 </style>
     </head>
@@ -549,7 +562,7 @@
         }
     }
     
-    // Reply UI Fix
+    // Mention Highlight Fix
     function renderMsg(m, isNew, isPrepended=false) {
         if (!m.author || !currentAccount) return;
         const p = document.getElementById('message-container');
@@ -563,7 +576,7 @@
             .replace(/\n/g, '<br>')
             .replace(/&lt;@!?(\d+)&gt;/g, (_,id)=>{
                 const u = m.mentions.find(mu=>mu.id === id);
-                return u ? `<span class="mention">@${u.global_name || u.username} (${u.username})</span>` : '@unknown-user';
+                return u ? `<span class="mention">@${u.global_name || u.username}</span>` : '@unknown-user';
             })
             .replace(/&lt;a?:(\w+):(\d+)&gt;/g, (_,n,i)=>`<img src="https://cdn.discordapp.com/emojis/${i}.webp?size=48&quality=lossless" alt=":${n}:" class="inline h-6 w-6">`);
 
@@ -574,35 +587,50 @@
             return `<div class="mt-2 p-3 rounded-md text-[var(--text-primary)]" style="background-color:var(--bg-tertiary);"><a href="${a.url}" target="_blank" class="text-[var(--text-link)]">${a.filename}</a></div>`
         }).join('');
         
-        let replyHtml = '';
+        let replyPreviewHtml = '';
         if (m.referenced_message) {
             const rm = m.referenced_message;
             const rAuth = rm.author;
             const rAuthName = rAuth.global_name || rAuth.username;
             const rCont = rm.content ? rm.content.substring(0, 100) : '添付ファイル';
             const rAuthAvatar = rAuth.avatar ? `https://cdn.discordapp.com/avatars/${rAuth.id}/${rAuth.avatar}.png?size=32` : `https://cdn.discordapp.com/embed/avatars/${rAuth.discriminator % 5}.png`;
-
-            replyHtml = `
-                <div class="relative ml-14 flex items-center cursor-pointer" onclick="scrollToMessage('${rm.id}')">
-                    <div style="bottom: -28px;" class="absolute -left-10 top-0 w-8 border-l-2 border-t-2 border-gray-400 dark:border-gray-600 rounded-tl-md"></div>
-                    <img src="${rAuthAvatar}" class="w-4 h-4 rounded-full mr-2">
-                    <b class="mr-2 text-sm text-[var(--text-link)]">${rAuthName}</b>
-                    <span class="truncate text-xs opacity-70">${rCont}</span>
-                </div>`;
+            
+            replyPreviewHtml = `<div class="flex items-center ml-14 mb-1 cursor-pointer" onclick="scrollToMessage('${rm.id}')"><img src="${rAuthAvatar}" class="w-4 h-4 rounded-full mr-2"><b class="mr-2 text-sm text-[var(--text-link)]">${rAuthName}</b><span class="truncate text-xs opacity-70">${rCont}</span></div>`;
         }
+
         if (m.embeds?.length > 0) contentHtml += m.embeds.map(renderEmbed).join('');
         const displayName = m.author.global_name || m.author.username;
         const nm = `${displayName} <span class="text-xs opacity-60">(@${m.author.username})</span>`;
         const av = m.author.avatar ? `https://cdn.discordapp.com/avatars/${m.author.id}/${m.author.avatar}.png?size=64` : `https://cdn.discordapp.com/embed/avatars/${m.author.discriminator % 5}.png`;
         const el = document.createElement('div');
         el.id = `message-${m.id}`;
+        if(m.nonce) el.dataset.nonce = m.nonce;
         el.className = "px-4 message-group relative";
         const isAuthor = m.author.id === currentAccount.id;
+
+        const isMentioned = m.mentions.some(user => user.id === currentAccount.id) || m.mention_everyone;
+        const isReplyMention = m.type === 19 && m.referenced_message && m.referenced_message.author.id === currentAccount.id;
+        
+        if(!isAuthor && (isMentioned || isReplyMention)) {
+            el.classList.add('mention-highlight');
+        }
+
         const toolbarHtml = `<div class="message-toolbar absolute -top-4 right-2 flex items-center gap-1 p-1 rounded-md shadow" style="background-color:var(--bg-secondary); color: var(--text-secondary);"> <button onclick='startReply(${JSON.stringify({id: m.id, author: m.author})})' title="Reply" class="p-1"><svg class="w-4 h-4" viewBox="0 0 24 24"><path d="M10 9V5l-7 7 7 7v-4.1c5 0 8.5 1.6 11 5.1-1-5-4-10-11-11z" fill="currentColor"/></svg></button> ${isAuthor ? `<button onclick='startEdit("${m.id}")' class="p-1" title="Edit"><svg class="w-4 h-4" viewBox="0 0 20 20"><path d="M17.414 2.586a2 2 0 00-2.828 0L7 10.172V13h2.828l7.586-7.586a2 2 0 000-2.828zM2 6a2 2 0 012-2h4a1 1 0 010 2H4v10h10v-4a1 1 0 112 0v4a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" clip-rule="evenodd" fill="currentColor"></path></svg></button> <button onclick='deleteMessage("${m.id}")' class="p-1" title="Delete"><svg class="w-4 h-4" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm4 0a1 1 0 012 0v6a1 1 0 11-2 0V8z" clip-rule="evenodd" fill="currentColor"></path></svg></button>` : ''}</div>`;
+
         if (isGrouped) {
-            el.innerHTML = `<div class="flex pl-14 pt-0.5"><div class="text-sm break-words message-content-text">${contentHtml}</div></div> ${toolbarHtml}`;
+             el.innerHTML = `<div class="flex pl-14 pt-0.5"><div class="text-sm break-words message-content-text">${contentHtml}</div></div> ${toolbarHtml}`;
         } else {
-            el.innerHTML = `${replyHtml}<div class="flex gap-3 pt-4"><img src="${av}" class="w-10 h-10 rounded-full mt-0.5 flex-shrink-0"><div class="flex-1 min-w-0"><div><b class="text-sm">${nm}</b><span class="text-xs opacity-40 ml-2">${new Date(m.timestamp).toLocaleString()}</span></div><div class="text-sm break-words message-content-text">${contentHtml}</div></div></div> ${toolbarHtml}`;
+             const replyLineHtml = m.referenced_message ? `<div class="absolute left-6 top-0 w-8 h-[24px] border-l-2 border-t-2 border-gray-400 dark:border-gray-600 rounded-tl-md"></div>` : '';
+             el.innerHTML = `
+                ${replyPreviewHtml}
+                <div class="relative flex gap-3 pt-1">
+                    ${replyLineHtml}
+                    <img src="${av}" class="w-10 h-10 rounded-full mt-0.5 flex-shrink-0">
+                    <div class="flex-1 min-w-0">
+                        <div><b class="text-sm">${nm}</b><span class="text-xs opacity-40 ml-2">${new Date(m.timestamp).toLocaleString()}</span></div>
+                        <div class="text-sm break-words message-content-text">${contentHtml}</div>
+                    </div>
+                </div> ${toolbarHtml}`;
         }
         el.querySelector('.message-content-text').dataset.originalContent = originalContent;
         if (isPrepended) {
@@ -636,24 +664,21 @@
             }
             return;
         }
-        const payload = {
-            content,
-            nonce: Date.now().toString(),
-            tts: false
-        };
-        if (replyingTo) payload.message_reference = {
-            message_id: replyingTo.messageId
-        };
+        const nonce = Date.now().toString();
+        const payload = { content, nonce, tts: false };
+        if (replyingTo) payload.message_reference = { message_id: replyingTo.messageId };
+
         if (attachedFile) return sendMessageWithFile(payload);
         input.value = '';
         handleInput();
+        
         cancelReply();
+        
         const res = await apiRequest(currentAccount.token, `/channels/${currentChannel.id}/messages`, 'POST', payload);
         if (res.error) {
             input.value = content;
             handleInput();
-            const msg = res.error.message || '送信失敗';
-            console.error("Send Error:", res.error)
+            console.error("Send Error:", res.error);
         }
     }
     async function sendMessageWithFile(payload={}) {
@@ -784,8 +809,9 @@
             } else if (d.t === 'MESSAGE_DELETE' && d.d.channel_id === currentChannel?.id) document.getElementById(`message-${d.d.id}`)?.remove();
             else if (d.t === 'MESSAGE_UPDATE' && d.d.channel_id === currentChannel?.id) {
                 const el = document.getElementById(`message-${d.d.id}`);
-                if (el) {
-                    el.querySelector('.message-content-text').innerHTML = d.d.content.replace(/\n/g, '<br>');
+                if (el && d.d.content !== undefined) {
+                    const contentEl = el.querySelector('.message-content-text');
+                    if(contentEl) contentEl.innerHTML = d.d.content.replace(/\n/g, '<br>');
                 }
             }
         }
