@@ -5,7 +5,7 @@
         --bg-quaternary: #ebebeb;
         --text-primary: #111111;
         --text-secondary: #555555;
-        --text-link: #4f89e2; /* 元の色に戻しました */
+        --text-link: #4f89e2; /* 青色に戻しました */
         --border-color: #cccccc;
         --button-bg: #5865f2;
         --button-text: #fff;
@@ -14,6 +14,8 @@
         --mention-bg: rgba(88, 101, 242, 0.1);
         --mention-fg: #5865f2;
         --system-bg: rgba(88, 166, 255, 0.1);
+        
+        /* 新機能用の変数は維持 */
         --mention-bg-highlight: rgba(250, 233, 105, 0.1);
         --mention-border-highlight: #faa81a;
         --error-bg: rgba(240, 71, 71, 0.05);
@@ -38,6 +40,8 @@
         --mention-bg: rgba(88, 101, 242, 0.15);
         --mention-fg: #7289da;
         --system-bg: rgba(88, 166, 255, 0.1);
+        
+        /* 新機能用の変数は維持 */
         --mention-bg-highlight: rgba(250, 233, 105, 0.05);
         --error-bg: rgba(240, 71, 71, 0.1);
         --code-bg: #2f3136;
@@ -52,7 +56,7 @@
         position: relative;
     }
 
-    /* サーバーアイコンのサイズを厳格に指定 */
+    /* サーバーアイコンのサイズ崩れを防止 */
     .server-icon {
         width: 48px;
         height: 48px;
@@ -62,7 +66,7 @@
     }
 
     .server-icon.active img, .server-icon.active div {
-        border-radius: 30%; /* 少し四角くする */
+        border-radius: 1rem; /* 以前の少し四角い形状 */
         transition: border-radius 0.2s ease-in-out;
     }
 
