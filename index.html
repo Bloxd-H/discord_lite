@@ -514,19 +514,26 @@
     // スラッシュコマンド検索
     async function searchSlashCommands(query, channelId) {
         if (!channelId) return [];
-        // type=1はCHAT_INPUT(スラッシュコマンド)
-        const url = `/channels/${channelId}/application-commands/search?type=1&query=${encodeURIComponent(query)}&limit=10`;
-        const { data } = await apiRequest(currentAccount.token, url);
-        return data?.application_commands || [];
+        if (!query || query.length === 0) return []; // 空クエリでは検索しない
+        try {
+            // type=1はCHAT_INPUT(スラッシュコマンド)
+            const url = `/channels/${channelId}/application-commands/search?type=1&query=${encodeURIComponent(query)}&limit=10`;
+            const { data, error } = await apiRequest(currentAccount.token, url);
+            if(error) return [];
+            return data?.application_commands || [];
+        } catch { return []; }
     }
 
     // メンバー検索
     async function searchMembers(query, guildId) {
         if (!guildId) return [];
-        // クエリが空でも検索できるようにする（空文字だと最近のメンバー等が出る可能性がある）
-        const q = query ? encodeURIComponent(query) : '';
-        const { data } = await apiRequest(currentAccount.token, `/guilds/${guildId}/members/search?query=${q}&limit=10`);
-        return data || [];
+        if (!query || query.length < 1) return []; // 空文字対策
+        try {
+            // ユーザーアカウントでは権限不足で403になることが多いため、エラーは無視して空配列を返す
+            const { data, error } = await apiRequest(currentAccount.token, `/guilds/${guildId}/members/search?query=${encodeURIComponent(query)}&limit=10`);
+            if (error) return [];
+            return data || [];
+        } catch { return []; }
     }
 
     async function selectChannel(ch) {
@@ -577,7 +584,7 @@
         const con = document.getElementById('message-container');
         const el = document.createElement('div');
         el.className = 'clyde-message flex gap-3 pt-1 pb-2';
-        const clydeSrc = '/images/clyde.png'; 
+        const clydeSrc = '/assets/clyde.png'; 
         const fallbackSrc = 'https://cdn.discordapp.com/app-assets/1089635038827593848/1089635038827593848.png';
 
         el.innerHTML = `
@@ -762,7 +769,7 @@
         // スラッシュコマンド
         if (val.startsWith('/')) {
             const query = val.substring(1);
-            // 入力があるたびに検索APIを叩く（デバウンス付き）
+            if (!query) { popup.classList.add('hidden'); return; }
             if (commandDebounce) clearTimeout(commandDebounce);
             commandDebounce = setTimeout(async () => {
                  const cmds = await searchSlashCommands(query, currentChannel.id);
@@ -772,17 +779,17 @@
         }
 
         // メンション検索
-        // カーソル直前の単語が@で始まっているか判定
         const cursor = i.selectionEnd;
         const textBeforeCursor = val.substring(0, cursor);
-        const atMatch = textBeforeCursor.match(/@(\S*)$/); // 末尾が @xxxx
+        const atMatch = textBeforeCursor.match(/@(\S*)$/); 
 
         if (atMatch && currentChannel?.guild_id) {
             const query = atMatch[1];
+            if (!query) { popup.classList.add('hidden'); return; } // 空クエリでは検索しない
             if (memberDebounce) clearTimeout(memberDebounce);
             memberDebounce = setTimeout(async () => {
                  const members = await searchMembers(query, currentChannel.guild_id);
-                 renderPopup(members, 'mention', cursor - query.length - 1); // -1 は @ の分
+                 renderPopup(members, 'mention', cursor - query.length - 1); 
             }, 300);
         } else {
             popup.classList.add('hidden');
