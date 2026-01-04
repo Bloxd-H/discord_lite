@@ -65,19 +65,29 @@
         position: relative;
     }
 
+    /* サーバーアイコンの形状制御 */
     .server-icon {
         width: 48px !important;
         height: 48px !important;
         min-width: 48px !important;
         min-height: 48px !important;
-        border-radius: 50% !important;
-        overflow: hidden;
+        border-radius: 50% !important; /* デフォルトは丸 */
+        overflow: hidden; /* 中身の画像もこの形で切り取る */
         cursor: pointer;
-        transition: border-radius 0.2s ease;
+        transition: border-radius 0.2s ease, background-color 0.2s ease;
     }
     
+    /* ホバー時とアクティブ時は角丸四角形 */
     .server-icon:hover, .server-icon.active {
         border-radius: 16px !important;
+    }
+
+    /* 中身の画像サイズ調整 */
+    .server-icon img, .server-icon div {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
     }
 
     .ping-dot {
@@ -496,9 +506,11 @@
             el.title = s.name;
             el.onclick = () => loadChannels(s, el);
             if (s.icon) {
-                el.innerHTML = `<img src="https://cdn.discordapp.com/icons/${s.id}/${s.icon}.png?size=128" class="object-cover w-full h-full rounded-full">`
+                // 中身の rounded-full を削除し、親要素の overflow:hidden に任せる
+                el.innerHTML = `<img src="https://cdn.discordapp.com/icons/${s.id}/${s.icon}.png?size=128" class="object-cover w-full h-full">`
             } else {
-                el.innerHTML = `<div class="w-full h-full flex items-center justify-center bg-gray-700 text-white font-bold rounded-full text-sm">${s.name.replace(/[^\w\s]/gi, '').split(' ').map(w => w[0]).join('').substring(0, 2)}</div>`
+                // 文字アイコンの場合も同様
+                el.innerHTML = `<div class="w-full h-full flex items-center justify-center bg-gray-700 text-white font-bold text-sm">${s.name.replace(/[^\w\s]/gi, '').split(' ').map(w => w[0]).join('').substring(0, 2)}</div>`
             }
             l.appendChild(el);
         });
