@@ -37,7 +37,6 @@
             --popup-bg: #ffffff;
             --popup-highlight: #e0e0e0;
             --deleted-bg: rgba(240, 71, 71, 0.1);
-            /* 返信ラインの色 (ライトモード) */
             --reply-spine-color: #c4c9ce; 
         }
 
@@ -63,7 +62,6 @@
             --popup-bg: #2f3136;
             --popup-highlight: #40444b;
             --deleted-bg: rgba(240, 71, 71, 0.2);
-            /* 返信ラインの色 (ダークモード: 見やすい灰色) */
             --reply-spine-color: #b9bbbe; 
         }
 
@@ -130,42 +128,32 @@
         .popup-item:hover { background-color: var(--popup-highlight); }
         .command-option-badge { background-color: var(--bg-tertiary); padding: 1px 4px; border-radius: 3px; font-size: 0.8em; opacity: 0.8; }
 
-        /* 返信ラインのスタイル修正 */
         .reply-spine {
             position: absolute;
-            top: 14px; /* アバターの真ん中くらいから */
-            left: 20px;
-            width: 35px; /* アバターの手前まで */
-            height: 14px;
+            top: 14px; left: 20px; width: 35px; height: 14px;
             border-left: 2px solid var(--reply-spine-color);
             border-top: 2px solid var(--reply-spine-color);
-            border-top-left-radius: 6px;
-            border-bottom: 0;
-            border-right: 0;
-            margin-top: -2px;
-            pointer-events: none;
+            border-top-left-radius: 6px; border-bottom: 0; border-right: 0;
+            margin-top: -2px; pointer-events: none;
         }
 
-        /* アバターとデコレーション */
         .avatar-container {
             width: 40px; height: 40px; 
-            position: relative; 
-            flex-shrink: 0;
+            position: relative; flex-shrink: 0;
         }
         .avatar-img { 
             width: 100%; height: 100%; 
-            border-radius: 50%; 
-            object-fit: cover;
-            position: relative;
-            z-index: 10;
+            border-radius: 50%; object-fit: cover;
+            position: relative; z-index: 10;
         }
+        
+        /* 修正箇所: センター配置 */
         .avatar-decoration { 
             position: absolute; 
-            top: -20%; left: -20%; 
-            width: 140%; height: 140%; /* 少し大きく表示 */
-            pointer-events: none; 
-            z-index: 20; /* アバターの上に重ねる */
-            object-fit: contain; /* 潰れ防止 */
+            top: 50%; left: 50%; 
+            width: 120%; height: 120%;
+            transform: translate(-50%, -50%); /* 中心に配置 */
+            pointer-events: none; z-index: 20; 
         }
 
         .toggle-checkbox:checked { right: 0; border-color: #68D391; }
@@ -552,9 +540,6 @@
         // メッセージかつ仮でない要素を後ろから探す
         const msgs = Array.from(con.querySelectorAll('.message-group:not(.message-sending)'));
         if (msgs.length === 0) return null;
-        
-        // 最後の要素から author ID を探すのが難しいので、DOM描画時に data属性をつけておく手もあるが、
-        // renderMsg関数内で内部ステート lastMessageInfo を信用せず毎回判定する形に変更する。
         return msgs[msgs.length - 1]; // 要素を返す
     }
 
@@ -578,11 +563,10 @@
         const ms = res.data;
         if (Array.isArray(ms) && ms.length > 0) {
             oldestMessageId = ms[ms.length - 1].id; const lastReadId = ms[0].id;
-            // 履歴読み込み時は順番が決まっているので単純なループで良いが、汎用描画関数を使う
-            // 一括描画の方が効率良いが、既存ロジック再利用
+            // 一括描画の際もrenderMsgを通す
             ms.reverse().forEach(m => { 
                 if (plugins.messageLogger) messageStore[m.id] = m; 
-                renderMsg(m); // 順次追加
+                renderMsg(m);
             });
             if ((con.scrollHeight - con.scrollTop - con.clientHeight) < 1) { await apiRequest(currentAccount.token, `/channels/${ch.id}/messages/${lastReadId}/ack`, 'POST', {}); }
             setTimeout(() => con.scrollTop = con.scrollHeight, 0);
@@ -599,12 +583,10 @@
             let lastBatchAuthId = null; // バッチ内での比較用
             messages.forEach(msg => {
                 if (plugins.messageLogger) messageStore[msg.id] = msg;
-                // ここは prepend なので バッチ内での連続性を見る
-                // 実際はもっと複雑だが、簡易的に「一つ前と違うならヘッダー出す」でOK
-                const isGrouped = (msg.author.id === lastBatchAuthId);
-                // ※ 正確には timestamp も見るべきだが割愛
+                const isGrouped = (msg.author.id === lastBatchAuthId && !msg.referenced_message && !msg.webhook_id);
                 const el = createMessageElement(msg, isGrouped);
-                el.dataset.authorId = msg.author.id; // DOMに情報を埋める
+                el.dataset.authorId = msg.author.id;
+                el.dataset.timestamp = msg.timestamp;
                 fragment.appendChild(el);
                 lastBatchAuthId = msg.author.id;
             });
@@ -627,7 +609,7 @@
         if (m.embeds?.length > 0) contentHtml += m.embeds.map(renderEmbed).join('');
         
         const el = document.createElement('div'); el.id = `message-${m.id}`; el.className = "px-4 message-group relative hover:bg-[var(--message-hover)]";
-        el.dataset.authorId = m.author.id; // データ属性を追加して判定しやすくする
+        el.dataset.authorId = m.author.id;
         el.dataset.timestamp = m.timestamp;
 
         if (m.deleted) el.classList.add('deleted-log'); 
@@ -665,10 +647,9 @@
         
         let isGrouped = false;
 
-        // リストへの追加(Append)の場合、表示済みの最後の要素とチェックする
         if (!isPrepended) {
-            const lastEl = getLastMessageAuthorId(); // 実際に画面に出ている最後の要素(仮除く)を取得
-            if (lastEl && !m.referenced_message && !m.webhook_id) { // Reply/Webhookはグループ化しない
+            const lastEl = getLastMessageAuthorId(); // 実際の画面の最後を取得
+            if (lastEl && !m.referenced_message && !m.webhook_id) { 
                 const lastId = lastEl.dataset.authorId;
                 const lastTs = new Date(lastEl.dataset.timestamp).getTime();
                 const curTs = new Date(m.timestamp).getTime();
@@ -695,7 +676,11 @@
         if (replyingTo) payload.message_reference = { message_id: replyingTo.messageId };
         if (attachedFile) return sendMessageWithFile(payload);
         const tempId = `temp-${nonce}`;
-        const tempMsg = { id: tempId, content: content, author: currentAccount, timestamp: new Date().toISOString(), nonce: nonce, referenced_message: replyingTo ? { id: replyingTo.messageId, author: replyingTo.author, content: 'Replying...' } : null };
+        // Temporary msg structure matching typical Discord object
+        const tempMsg = { 
+            id: tempId, content: content, author: currentAccount, timestamp: new Date().toISOString(), nonce: nonce, 
+            referenced_message: replyingTo ? { id: replyingTo.messageId, author: replyingTo.author, content: 'Replying...' } : null 
+        };
         renderMsg(tempMsg);
         const tempEl = document.getElementById(`message-${tempId}`);
         if(tempEl) tempEl.classList.add('message-sending');
@@ -733,9 +718,7 @@
             } else if (d.t === 'MESSAGE_CREATE') { 
                 if (d.d.channel_id === currentChannel?.id) { 
                     if(plugins.messageLogger) messageStore[d.d.id] = d.d;
-                    // ノンス(一時ID)があれば、該当する仮メッセージを削除
                     if(d.d.nonce) { 
-                        // DOMから nonce を含む ID を持つ仮メッセージを検索・削除
                         const temp = document.querySelector(`[id^=message-temp-${d.d.nonce}]`); 
                         if(temp) temp.remove(); 
                     }
