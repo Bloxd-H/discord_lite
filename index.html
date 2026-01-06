@@ -12,8 +12,10 @@
     </script>
     <link rel="stylesheet" href="style.css">
 </head>
-<body class="font-sans h-screen flex flex-col overflow-hidden bg-gray-200 dark:bg-gray-800 text-[var(--text-primary)]">
+<!-- 修正: 背景色を変数に統一 -->
+<body class="font-sans h-screen flex flex-col overflow-hidden bg-[var(--bg-primary)] text-[var(--text-primary)]">
     
+    <!-- Settings Modal -->
     <div id="settings-modal" class="hidden fixed inset-0 bg-black/50 z-[100] flex justify-center items-center backdrop-blur-sm">
         <div class="bg-[var(--bg-secondary)] w-full max-w-3xl h-[85vh] rounded-lg shadow-2xl flex overflow-hidden scale-100 transition-transform">
             <div class="w-1/3 bg-[var(--bg-secondary)] p-0 flex flex-col border-r" style="border-color: var(--bg-tertiary);">
@@ -29,12 +31,12 @@
                 </div>
                 
                 <div id="tab-content-plugins">
-                    <h2 class="text-2xl font-bold mb-6">Plugins</h2>
+                    <h2 class="text-2xl font-bold mb-6 text-[var(--text-primary)]">Plugins</h2>
                     <div id="plugin-list" class="space-y-4"></div>
                 </div>
 
                 <div id="tab-content-general" class="hidden">
-                    <h2 class="text-2xl font-bold mb-6">General</h2>
+                    <h2 class="text-2xl font-bold mb-6 text-[var(--text-primary)]">General</h2>
                     <h3 class="text-sm font-bold uppercase text-[var(--text-secondary)] mb-4">THEME</h3>
                     <div class="flex gap-4">
                         <div class="theme-card bg-[#2f3136]" onclick="setTheme('dark')">
@@ -55,7 +57,8 @@
         </div>
     </div>
 
-    <div id="auth-section" class="w-full max-w-md m-auto p-8 rounded-lg shadow-xl flex-col bg-white dark:bg-gray-700 hidden relative z-50">
+    <!-- Auth Section: 修正 - 背景色とテキスト色を変数対応に -->
+    <div id="auth-section" class="w-full max-w-md m-auto p-8 rounded-lg shadow-xl flex-col bg-[var(--bg-secondary)] text-[var(--text-primary)] hidden relative z-50">
         <div id="migration-view" class="hidden flex-col items-center justify-center mb-4">
             <div class="loader mb-2"></div>
             <div class="text-sm font-bold text-center">データを更新中...</div>
@@ -76,7 +79,7 @@
             <div id="login-error" class="text-red-500 text-xs mb-3 text-center"></div>
             <form class="space-y-4" onsubmit="return false;">
                 <div class="text-xs text-[var(--text-secondary)] uppercase font-bold" id="token-label">トークン</div>
-                <input type="password" id="token-input" class="input-field w-full p-2.5 rounded-md" placeholder="MTE...">
+                <input type="password" id="token-input" class="input-field w-full p-2.5 rounded-md bg-[var(--bg-tertiary)] text-[var(--text-primary)]" placeholder="MTE...">
                 <button type="button" id="add-account-button" class="bg-blue-600 hover:bg-blue-700 w-full py-3 rounded-md font-bold text-white flex justify-center items-center transition-colors">
                     <span id="add-account-button-text">ログイン</span>
                     <div id="login-spinner" class="loader hidden" style="width: 20px; height: 20px; border-width: 3px;"></div>
@@ -86,26 +89,30 @@
         </div>
     </div>
 
+    <!-- Main App -->
     <div id="main-app" class="hidden flex-1 flex-row min-h-0 relative">
-        <div id="sidebar-view" class="flex flex-row w-full h-full md:w-auto md:flex">
-            <div class="p-3 flex flex-col items-center gap-2 overflow-y-auto flex-shrink-0 no-scrollbar" style="background-color: var(--bg-tertiary);">
-                <div id="dm-icon" title="DM" class="server-icon bg-indigo-600 flex items-center justify-center cursor-pointer text-white font-black text-xl mb-1 hover:bg-indigo-500 transition-all duration-200 shrink-0 relative z-20">DM</div>
-                <div class="w-8 h-[2px] rounded-lg bg-[var(--bg-quaternary)] my-1 shrink-0"></div>
+        <div id="sidebar-view" class="flex flex-row w-full h-full md:w-auto md:flex z-50 bg-[var(--bg-tertiary)] md:bg-transparent">
+            <!-- Sidebar Icons -->
+            <div class="p-3 flex flex-col items-center gap-2 overflow-y-auto flex-shrink-0 no-scrollbar bg-[var(--bg-tertiary)] w-[72px]">
+                <div id="dm-icon" title="DM" class="server-icon bg-[#5865F2] flex items-center justify-center cursor-pointer text-white font-black text-xl mb-1 hover:bg-[#5865F2] transition-all duration-200 shrink-0 relative z-20">DM</div>
+                <div class="w-8 h-[2px] rounded-lg bg-[var(--bg-secondary)] my-1 shrink-0"></div>
                 <div id="guild-list" class="flex flex-col items-center gap-2 w-full pb-4"></div>
             </div>
             
+            <!-- Channel List -->
             <div class="w-full md:w-60 flex flex-col border-r flex-1 min-h-0 bg-[var(--bg-secondary)]" style="border-color: var(--bg-tertiary);">
-                <div class="h-12 p-3 border-b font-bold truncate flex items-center shadow-sm select-none hover:bg-[var(--hover-bg)] transition-colors cursor-pointer" id="guild-name" style="border-color: var(--bg-tertiary);"></div>
-                <div id="channel-list" class="flex-1 overflow-y-auto p-2"></div>
+                <div class="h-12 p-3 border-b font-bold truncate flex items-center shadow-sm select-none hover:bg-[var(--hover-bg)] transition-colors cursor-pointer text-[var(--text-primary)]" id="guild-name" style="border-color: var(--bg-tertiary);"></div>
+                <div id="channel-list" class="flex-1 overflow-y-auto p-2 scrollbar-thin"></div>
                 
-                <div class="relative flex-shrink-0 bg-[var(--bg-tertiary)]/80 backdrop-blur-md">
-                    <div id="user-info-panel" class="p-2.5 flex items-center gap-2 h-[58px] cursor-pointer" onclick="document.getElementById('account-switcher').classList.toggle('hidden')">
-                        <div class="relative w-9 h-9 flex-shrink-0">
+                <!-- User Panel -->
+                <div class="relative flex-shrink-0 bg-[var(--bg-secondary)] border-t border-[var(--bg-tertiary)]">
+                    <div id="user-info-panel" class="p-2.5 flex items-center gap-2 h-[53px] cursor-pointer hover:bg-[var(--hover-bg)]" onclick="document.getElementById('account-switcher').classList.toggle('hidden')">
+                        <div class="relative w-8 h-8 flex-shrink-0">
                             <div id="current-user-avatar-container" class="w-full h-full relative"></div>
                         </div>
                         <div class="flex-1 min-w-0 flex flex-col justify-center select-none">
-                             <div class="text-sm font-bold truncate leading-tight" id="current-user-name"></div>
-                             <div class="text-xs opacity-60 truncate leading-tight" id="current-user-subtext"></div>
+                             <div class="text-sm font-bold truncate leading-tight text-[var(--text-primary)]" id="current-user-name"></div>
+                             <div class="text-xs opacity-60 truncate leading-tight text-[var(--text-secondary)]" id="current-user-subtext"></div>
                         </div>
                         <div class="flex items-center">
                             <button id="open-settings-btn" class="p-2 hover:bg-[var(--active-bg)] rounded-md cursor-pointer text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors" title="ユーザー設定" onclick="event.stopPropagation(); renderSettingsModal();">
@@ -113,11 +120,12 @@
                             </button>
                         </div>
                     </div>
-
-                    <div id="account-switcher" class="hidden absolute bottom-[110%] left-2 min-w-[240px] rounded-lg shadow-xl overflow-hidden border z-50 bg-[var(--popup-bg)]" style="border-color: var(--border-color);">
+                    
+                    <!-- Account Switcher -->
+                    <div id="account-switcher" class="hidden absolute bottom-full left-2 min-w-[220px] mb-2 rounded-lg shadow-xl overflow-hidden border z-50 bg-[var(--popup-bg)]" style="border-color: var(--border-color);">
                         <div id="account-list" class="max-h-60 overflow-y-auto p-1 space-y-0.5"></div>
                         <div class="border-t p-1 mt-1" style="border-color: var(--border-color);">
-                            <div id="add-account-switcher-btn" class="text-sm p-2 rounded cursor-pointer hover:bg-indigo-500 hover:text-white flex items-center gap-2 transition-colors">
+                            <div id="add-account-switcher-btn" class="text-sm p-2 rounded cursor-pointer hover:bg-indigo-500 hover:text-white flex items-center gap-2 transition-colors text-[var(--text-primary)]">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
                                 アカウントを追加
                             </div>
@@ -127,52 +135,55 @@
             </div>
         </div>
 
+        <!-- Chat Section -->
         <div id="chat-section" class="hidden flex-1 md:flex flex-col min-h-0 min-w-0 bg-[var(--bg-primary)]">
-            <div class="h-12 p-3 border-b flex items-center justify-between flex-shrink-0 shadow-sm" style="border-color: var(--bg-tertiary); background-color:var(--bg-secondary);">
-                <div class="font-bold flex items-center truncate">
+            <!-- Header -->
+            <div class="h-12 px-4 py-3 border-b flex items-center justify-between flex-shrink-0 shadow-sm" style="border-color: var(--border-color); background-color:var(--bg-primary);">
+                <div class="font-bold flex items-center truncate text-[var(--text-primary)]">
                     <button id="back-to-channels-btn" class="mr-3 p-1 rounded-full hover:bg-[var(--bg-tertiary)] md:hidden">
                         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
                     </button>
+                    <div class="text-xl text-[var(--text-secondary)] mr-2">#</div>
                     <span id="channel-name-text"></span>
                 </div>
             </div>
             
-            <div id="message-container" class="flex-1 overflow-y-auto p-4 space-y-0 scroll-smooth" style="background-color: var(--bg-primary);"></div>
+            <!-- Messages -->
+            <div id="message-container" class="flex-1 overflow-y-auto px-4 py-2 space-y-0 scroll-smooth bg-[var(--bg-primary)] custom-scrollbar"></div>
             
-            <div class="flex-shrink-0 pt-0">
-                <div id="attachment-preview-bar" class="hidden px-4 py-2 text-sm border-t items-center justify-between" style="border-color: var(--bg-tertiary); background-color: var(--bg-secondary);">
-                    <div class="flex items-center gap-2 font-mono"><span class="text-blue-500">📎</span> <b id="attachment-preview-name"></b></div>
-                    <button id="cancel-attachment-btn" class="p-1 rounded-full hover:bg-[var(--hover-bg)]">
+            <!-- Input Area -->
+            <div class="flex-shrink-0 p-4">
+                <div id="attachment-preview-bar" class="hidden px-4 py-3 text-sm rounded-t-lg bg-[var(--bg-secondary)] border-b border-[var(--bg-tertiary)] flex items-center justify-between">
+                    <div class="flex items-center gap-2 font-mono text-[var(--text-primary)]"><span class="text-blue-500">📎</span> <b id="attachment-preview-name"></b></div>
+                    <button id="cancel-attachment-btn" class="p-1 rounded-full hover:bg-[var(--hover-bg)] text-[var(--text-secondary)]">
                         <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path></svg>
                     </button>
                 </div>
                 
-                <div class="px-4 pb-4 pt-1 bg-[var(--bg-primary)]">
-                    <div class="flex items-start gap-2 bg-[var(--bg-tertiary)] p-2 rounded-lg relative transition-all shadow-sm" style="min-height: 44px;">
+                <div class="bg-[var(--bg-tertiary)] p-3 rounded-lg relative transition-all shadow-sm">
+                    <div id="reply-bar" class="hidden flex items-center justify-between text-xs font-bold text-[var(--text-secondary)] mb-1 px-1 bg-[var(--bg-tertiary)]">
+                         <span class="truncate flex items-center">Replying to <b id="reply-username" class="ml-1 text-[var(--text-primary)]"></b></span>
+                         <button id="cancel-reply-btn" class="p-0.5 rounded-full hover:text-[var(--text-primary)]">
+                            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path></svg>
+                        </button>
+                    </div>
+
+                    <div class="flex items-start gap-3">
                         <input type="file" id="file-input" class="hidden" multiple>
-                        
-                        <button id="attach-button" class="p-2 rounded-lg text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--hover-bg)] transition-colors mt-0.5" title="ファイルを添付">
+                        <button id="attach-button" class="p-1 rounded-lg text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--hover-bg)] transition-colors mt-1" title="ファイルを添付">
                             <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm5 11h-4v4h-2v-4H7v-2h4V7h2v4h4v2z"/></svg>
                         </button>
 
                         <div class="relative w-full self-center">
                             <div id="popup-picker" class="hidden absolute left-0 w-full popup-menu" style="bottom: 100%; margin-bottom: 12px;"></div>
-                            
-                            <div id="reply-bar" class="hidden flex items-center justify-between text-sm text-[var(--text-secondary)] mb-1 px-1 opacity-80">
-                                 <span class="truncate">Replying to <b id="reply-username"></b></span>
-                                 <button id="cancel-reply-btn" class="p-0.5 rounded-full hover:text-[var(--text-primary)]">
-                                    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path></svg>
-                                </button>
-                            </div>
-                            
-                            <textarea id="message-input" placeholder="メッセージを送信" class="input-field w-full bg-transparent p-1.5 text-[0.95rem] resize-none max-h-[50vh] focus:outline-none min-h-[24px]" rows="1"></textarea>
-                            <div id="char-counter" class="absolute bottom-1 right-1 text-[10px] font-mono font-bold text-[var(--text-secondary)] opacity-0 pointer-events-none select-none"></div>
+                            <textarea id="message-input" placeholder="メッセージを送信" class="input-field w-full bg-transparent text-[var(--text-primary)] p-1 text-[0.95rem] resize-none max-h-[50vh] focus:outline-none min-h-[24px]" rows="1" style="height:24px;"></textarea>
                         </div>
                         
-                        <button id="send-button" class="p-2 rounded-lg text-[var(--button-bg)] hover:bg-[var(--hover-bg)] disabled:opacity-40 disabled:cursor-not-allowed transition-colors self-end" disabled>
+                        <button id="send-button" class="p-1 rounded-lg text-[var(--text-secondary)] hover:text-[var(--button-bg)] hover:bg-[var(--hover-bg)] disabled:opacity-30 disabled:hover:text-[var(--text-secondary)] transition-colors self-end" disabled>
                             <svg class="w-6 h-6" viewBox="0 0 24 24" fill="currentColor" style="transform: rotate(0deg);"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
                         </button>
                     </div>
+                    <div id="char-counter" class="absolute bottom-1 right-2 text-[10px] font-mono font-bold text-[var(--text-secondary)] opacity-0 pointer-events-none select-none"></div>
                 </div>
             </div>
         </div>
