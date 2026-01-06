@@ -66,7 +66,7 @@ html.dark {
     cursor: pointer; transition: all 0.2s cubic-bezier(0,0,0,1);
     background-color: var(--bg-primary);
     display: flex; align-items: center; justify-content: center;
-    position: relative; overflow: visible; 
+    position: relative; overflow: visible; z-index: 10;
 }
 .server-icon img { border-radius: 50%; transition: border-radius 0.2s; }
 .server-icon:hover, .server-icon.active { border-radius: 16px; }
@@ -88,13 +88,14 @@ html.dark {
 
 .folder-opened {
     background-color: transparent !important; color: var(--text-secondary);
-    width: 48px; display: flex; align-items: center; justify-content: center; padding: 4px;
+    width: 48px; height: 48px; display: flex; align-items: center; justify-content: center; padding: 4px;
 }
 
-.in-folder::after {
-    content: ''; position: absolute; inset: -4px; 
-    background-color: rgba(88, 101, 242, 0.1); 
-    border-radius: 16px; z-index: -1; opacity: 0.6; pointer-events: none;
+/* Background for servers INSIDE an open folder to be blue-ish */
+.server-icon.in-folder::after {
+    content: ''; position: absolute; inset: -4px;
+    background-color: rgba(88, 101, 242, 0.15); 
+    border-radius: 16px; z-index: -1; 
 }
 
 .ping-dot {
@@ -105,6 +106,7 @@ html.dark {
 .channel-item.active { background-color: var(--active-bg); color: var(--text-primary); }
 .channel-item:hover:not(.active) { background-color: var(--hover-bg); color: var(--text-primary); }
 
+/* Avatar Decoration Centering Fix */
 .avatar-container {
     width: 40px; height: 40px; margin-top: 2px;
     position: relative; flex-shrink: 0;
@@ -126,7 +128,7 @@ html.dark {
 #user-info-panel .avatar-container, #user-info-panel .relative { overflow: visible; }
 #user-info-panel .avatar-decoration { top: 50%; left: 50%; width: 124%; height: 124%; transform: translate(-50%, -50%); }
 
-.message-group { position: relative; margin-top: 1.0625rem; }
+.message-group { position: relative; margin-top: 1.0625rem; min-height: 1rem; }
 .message-group.grouped { margin-top: 0.125rem; }
 .message-group:hover { background-color: var(--message-hover); }
 .message-group:hover .message-toolbar { opacity: 1; transform: translateY(0); pointer-events: auto; }
@@ -147,14 +149,18 @@ html.dark {
 }
 .flash-highlight { animation: flash-yellow 1.5s ease-out forwards; }
 
+/* Adjusted Reply Spine (Simple Hook) */
 .reply-spine {
     position: absolute;
-    top: 22px; left: 32px; width: 34px; height: 12px;
+    top: 50%; left: -14px; 
+    width: 32px; height: 10px;
     border-left: 2px solid var(--reply-spine-color);
     border-top: 2px solid var(--reply-spine-color);
     border-top-left-radius: 6px;
+    margin-top: -5px; 
     pointer-events: none;
     z-index: 0;
+    /* Aligned for the referenced block */
 }
 
 .settings-tab-item {
