@@ -1,151 +1,126 @@
 :root {
+    --primary-color: #5865f2;
+    --text-link: #00b0f4;
     --mention-bg: rgba(88, 101, 242, 0.1);
-    --mention-border: #f0b232;
-    --bg-highlight: rgba(240, 178, 50, 0.1);
+    --bg-modifier-selected: rgba(128, 128, 128, 0.16);
 }
 
-/* Base Utility & Reset */
-* { box-sizing: border-box; }
-.no-scrollbar::-webkit-scrollbar { display: none; }
-.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-
-/* Scrollbars */
 ::-webkit-scrollbar { width: 8px; height: 8px; }
-::-webkit-scrollbar-track { background-color: transparent; }
-::-webkit-scrollbar-thumb { background-color: #e3e5e8; border-radius: 4px; }
-.dark ::-webkit-scrollbar-thumb { background-color: #1a1b1e; }
-.dark ::-webkit-scrollbar-thumb:hover { background-color: #2b2d31; }
+::-webkit-scrollbar-track { background-color: #2b2d31; }
+::-webkit-scrollbar-thumb { background-color: #1a1b1e; border-radius: 4px; }
+html:not(.dark) ::-webkit-scrollbar-track { background-color: #f2f3f5; }
+html:not(.dark) ::-webkit-scrollbar-thumb { background-color: #c4c9ce; }
 
-/* Sidebar Rail Scrollbar Hiding */
 #server-rail {
     overflow-x: hidden !important;
-    scrollbar-width: none; 
+    scrollbar-width: none;
 }
 #server-rail::-webkit-scrollbar {
-    display: none; 
+    display: none;
 }
 
-/* Icons */
 .server-icon {
     width: 48px; height: 48px; min-height: 48px;
     border-radius: 50%;
-    cursor: pointer; transition: all 0.2s cubic-bezier(0,0,0,1);
+    cursor: pointer;
+    transition: border-radius 0.2s, background-color 0.2s;
     display: flex; align-items: center; justify-content: center;
-    position: relative; overflow: visible; z-index: 10;
+    position: relative;
+    background-color: #313338;
+    color: #dbdee1;
+    overflow: hidden; 
 }
-.server-icon img { border-radius: 50%; transition: border-radius 0.2s; }
-.server-icon:hover, .server-icon.active { border-radius: 16px; }
-.server-icon:hover img, .server-icon.active img { border-radius: 16px; }
+html:not(.dark) .server-icon { background-color: #e3e5e8; color: #060607; }
+
+.server-icon:hover, .server-icon.active { border-radius: 16px; background-color: #5865f2; color: white; }
+.server-icon img { width: 100%; height: 100%; object-fit: cover; border-radius: inherit; transition: border-radius 0.2s; }
+
 .server-icon.active::before {
     content: ''; position: absolute; left: -14px; top: 10px; height: 28px; width: 8px;
-    background-color: currentColor; border-radius: 0 4px 4px 0; transition: height 0.2s;
+    background-color: white; border-radius: 0 4px 4px 0;
 }
+html:not(.dark) .server-icon.active::before { background-color: #060607; }
 
-/* Folders */
 .folder-closed {
     width: 48px; height: 48px; border-radius: 24px;
-    background-color: rgba(88, 101, 242, 0.2); cursor: pointer;
+    background-color: rgba(88, 101, 242, 0.25); cursor: pointer;
     display: flex; flex-wrap: wrap; padding: 10px; gap: 4px;
-    align-items: center; justify-content: center; transition: all 0.2s;
+    justify-content: center; align-content: center;
+    transition: border-radius 0.2s, background-color 0.2s;
 }
 .folder-closed:hover { border-radius: 16px; background-color: #5865f2; }
-.folder-icon-thumb { width: 10px; height: 10px; object-fit: cover; border-radius: 50%; }
-
+.folder-icon-thumb { width: 10px; height: 10px; border-radius: 50%; object-fit: cover; }
 .server-icon.in-folder::after {
-    content: ''; position: absolute; inset: -4px;
-    background-color: rgba(255, 255, 255, 0.05);
-    border-radius: 16px; z-index: -1; 
+    content: ''; position: absolute; inset: 0; background-color: rgba(0,0,0,0.1); pointer-events: none;
 }
 
-/* Channels */
-.channel-item { border-radius: 4px; transition: background-color 0.1s; }
-.channel-item.active { background-color: #e5e5e5; color: black; }
-.dark .channel-item.active { background-color: #3f4147; color: white; }
-.channel-item:hover:not(.active) { background-color: #eaeaea; }
-.dark .channel-item:hover:not(.active) { background-color: #35373c; }
-.category-collapsed .channel-child { display: none !important; }
-.category-arrow { transition: transform 0.2s; }
-.category-collapsed .category-arrow { transform: rotate(-90deg); }
+.channel-item {
+    border-radius: 4px; 
+    color: #949ba4; 
+    margin-bottom: 2px;
+}
+html:not(.dark) .channel-item { color: #5c5e66; }
+.channel-item:hover { background-color: var(--bg-modifier-selected); color: #dbdee1; }
+.channel-item.active { background-color: rgba(79, 84, 92, 0.48); color: white; }
+html:not(.dark) .channel-item.active { background-color: rgba(116, 127, 141, 0.2); color: #060607; }
 
-/* Ping Dots */
 .ping-dot {
     position: absolute; bottom: -2px; right: -2px; width: 14px; height: 14px;
-    background-color: #ed4245; border-radius: 50%; border: 3px solid #2b2d31;
-    z-index: 30; pointer-events: none;
+    background-color: #ed4245; border-radius: 50%; 
+    border: 3px solid #2b2d31; z-index: 10; pointer-events: none;
 }
+html:not(.dark) .ping-dot { border-color: #f2f3f5; }
 
-/* Messages */
-.message-group { position: relative; margin-top: 1rem; width: 100%; }
+.message-group { position: relative; width: 100%; margin-top: 1.0625rem; }
 .message-group.grouped { margin-top: 2px; }
-.message-group:hover { background-color: rgba(0,0,0,0.04); }
-.dark .message-group:hover { background-color: rgba(2,2,2,0.04); }
+.message-group:hover { background-color: rgba(4, 4, 5, 0.07); }
 .message-toolbar { 
-    opacity: 0; transform: translateY(-4px); transition: all 0.1s; 
-    border: 1px solid #ddd; background: white; 
+    opacity: 0; pointer-events: none; transform: translateY(-4px); transition: all 0.1s;
+    background-color: #313338; border: 1px solid #1f2023;
 }
-.dark .message-toolbar { border: 1px solid #1f2023; background: #2b2d31; }
-.message-group:hover .message-toolbar { opacity: 1; transform: translateY(0); }
+html:not(.dark) .message-toolbar { background-color: white; border: 1px solid #ccc; }
+.message-group:hover .message-toolbar { opacity: 1; transform: translateY(0); pointer-events: auto; }
 
-/* Mention Highlight (Background + Left Border) */
+.mention {
+    background-color: rgba(88, 101, 242, 0.3); color: #c9cdfb;
+    padding: 0 2px; border-radius: 3px; font-weight: 500; cursor: pointer; transition: 0.1s;
+}
+html:not(.dark) .mention { background-color: rgba(88, 101, 242, 0.1); color: #5865f2; }
+.mention:hover { background-color: #5865f2; color: white; }
+
 .mention-highlight {
-    background-color: rgba(250, 166, 26, 0.1) !important;
+    background-color: rgba(250, 166, 26, 0.1);
     position: relative;
 }
 .mention-highlight::before {
-    content: "";
-    position: absolute;
-    top: 0; left: 0; bottom: 0;
-    width: 2px;
-    background-color: #faa81a;
-}
-.message-group.mention-highlight:hover {
-    background-color: rgba(250, 166, 26, 0.15) !important;
+    content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 2px;
+    background-color: #faa61a;
 }
 
-/* Flash effect */
-@keyframes flash { 0% { background-color: rgba(250,166,26,0.3); } 100% { background-color: transparent; } }
-.flash-highlight { animation: flash 1s forwards; }
-
-/* Reply Spine Fix */
 .reply-spine {
-    position: absolute; top: 50%; left: -22px; 
-    width: 32px; height: 12px;
-    border-left: 2px solid #b5bac1; border-top: 2px solid #b5bac1;
-    border-top-left-radius: 6px; margin-top: -6px; 
-    pointer-events: none; z-index: 0;
+    position: absolute; top: 12px; left: -24px; width: 34px; height: 10px;
+    border-left: 2px solid #4e5058; border-top: 2px solid #4e5058;
+    border-top-left-radius: 6px; pointer-events: none;
 }
-.dark .reply-spine { border-color: #4f545c; }
+html:not(.dark) .reply-spine { border-color: #c4c9ce; }
 
-/* Deleted Message Styles */
-.message-deleted-text {
-    color: #ed4245 !important;
-}
-.message-deleted-img {
-    filter: grayscale(100%);
-    opacity: 0.8;
-    transition: filter 0.2s, opacity 0.2s;
-}
-.message-deleted-img:hover {
-    filter: grayscale(0%);
-    opacity: 1;
-}
+@keyframes flash-anim { 0%,20%{background-color: rgba(250, 166, 26, 0.2);} 100%{background-color: transparent;} }
+.flash-highlight { animation: flash-anim 1s ease-out; }
 
-/* User Panel Avatar Decoration (Overflowing) */
-#user-info-panel .relative { overflow: visible !important; }
-.user-panel-decoration {
-    position: absolute; top: 50%; left: 50%;
-    width: 140% !important; height: 140% !important;
-    max-width: none !important;
-    transform: translate(-50%, -50%);
-    pointer-events: none; z-index: 20;
-}
+.deleted-text { color: #da373c; margin-left: 4px; font-size: 0.75rem; font-weight: bold; }
+.deleted-img { filter: grayscale(100%); opacity: 0.6; transition: 0.2s; }
+.deleted-img:hover { filter: grayscale(0%); opacity: 1; }
 
-/* Settings */
-.settings-tab-item { padding: 6px 12px; border-radius: 4px; cursor: pointer; color: #72767d; }
-.settings-tab-item.active { background-color: rgba(100,100,100,0.1); color: inherit; cursor: default; }
-.switch { position: relative; width: 40px; height: 24px; }
+.switch { position: relative; width: 40px; height: 24px; display: inline-block; }
 .switch input { opacity: 0; width: 0; height: 0; }
 .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #80848e; transition: .4s; border-radius: 24px; }
 .slider:before { position: absolute; content: ""; height: 16px; width: 16px; left: 4px; bottom: 4px; background-color: white; transition: .4s; border-radius: 50%; }
 input:checked + .slider { background-color: #3ba55c; }
 input:checked + .slider:before { transform: translateX(16px); }
+
+.loader {
+    border: 3px solid rgba(255,255,255,0.1); border-top: 3px solid #5865f2;
+    border-radius: 50%; width: 24px; height: 24px; animation: spin 1s linear infinite;
+}
+html:not(.dark) .loader { border-color: rgba(0,0,0,0.1); border-top-color: #5865f2; }
+@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
